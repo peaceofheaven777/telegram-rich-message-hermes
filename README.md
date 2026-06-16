@@ -1,122 +1,164 @@
-# 🦉 Hermes Skills by Hoot
+# 🦉 Telegram Rich Messages by Hoot
 
-Reusable [Hermes Agent](https://github.com/NousResearch/hermes-agent) skills — procedural knowledge that any Hermes-compatible agent can load and follow.
+Enable **Telegram Bot API 10.1 Rich Messages** (`sendRichMessage`) in [Hermes Agent](https://github.com/NousResearch/hermes-agent) — render **native tables**, **real checkboxes**, and **expandable `<details>` sections** instead of flattened plain text.
 
-> Skills are how Hermes "learns" — each skill is a self-contained Markdown file with frontmatter that tells the agent **when to use it** and **how to do it**. Drop one into `~/.hermes/skills/` and the agent picks it up automatically.
+This repo is a single, battle-tested Hermes skill — drop it into your agent and every Telegram reply renders like a proper rich document.
 
 ---
 
-## 📦 Skills in This Repo
+## ✨ What You Get
 
-| Skill | What It Does |
+| Before | After |
 |---|---|
-| [`telegram-rich-messages`](./skills/telegram-rich-messages/SKILL.md) | Enable Telegram Bot API 10.1 `sendRichMessage` in Hermes — native tables, real checkboxes, expandable `<details>`. Also defines agent behavior for actively using rich formatting once enabled. |
+| Tables show as raw `\|---\|---\|` pipes | Native grid with borders |
+| Checklists show literal `- [x]` | Real checkbox icons ☑ / ☐ |
+| `<details>` shows as plain text | Clickable, expandable sections |
+| Walls of bullet text | Structured, scannable replies |
+
+Plus, the skill teaches the agent **when and how to use rich formatting actively** — not just enables the capability.
 
 ---
 
 ## 🚀 Quick Install
 
-### Option A — Drop into local skills folder
-
-```bash
-git clone https://github.com/peaceofheaven777/hermes-skills.git
-cp -r hermes-skills/skills/* ~/.hermes/skills/
-# In Hermes CLI:
-/reload-skills
-```
-
-### Option B — Single skill via Hermes CLI
+### Option A — Hermes CLI (recommended)
 
 ```bash
 hermes skills install \
-  https://raw.githubusercontent.com/peaceofheaven777/hermes-skills/main/skills/telegram-rich-messages/SKILL.md \
+  https://raw.githubusercontent.com/peaceofheaven777/telegram-rich-message-hermes/main/skills/telegram-rich-messages/SKILL.md \
   --name telegram-rich-messages
 ```
 
-### Option C — Manual paste
-
-Open the SKILL.md, copy contents, and tell your Hermes agent:
-
-> "Save this as a skill called `<skill-name>`"
-
----
-
-## 🎯 Why These Exist
-
-Skills capture lessons learned the hard way — config gotchas, hidden code paths, behavior preferences — so the next agent (or the next session of the same agent) doesn't have to rediscover them.
-
-The `telegram-rich-messages` skill, for example, encodes 12 pitfalls discovered during a live debugging session:
-- Wrong config key path (top-level vs `gateway.platforms.telegram.extra`)
-- Streaming silently blocking rich path via `expect_edits=True`
-- `send_message` tool bypassing rich entirely
-- Latch state being permanent per process
-- Restart blocked from inside agent (anti-loop guard)
-
-Without the skill, every new session would burn 30+ minutes re-debugging the same issues.
-
----
-
-## 🛠 Skill Format (For Contributors)
-
-Each skill is a Markdown file with YAML frontmatter:
-
-```markdown
----
-name: skill-name-here
-description: "One-line summary of what the skill does."
-version: 1.0.0
-author: Your Name
-license: MIT
-platforms: [linux, macos]
-metadata:
-  hermes:
-    tags: [tag1, tag2]
----
-
-# Skill Title
-
-## Trigger
-When to use this skill.
-
-## Prerequisites
-What needs to be set up first.
-
-## Procedure
-Step-by-step instructions.
-
-## Pitfalls
-Things that go wrong, ranked by frequency.
-
-## Verification
-How to confirm it worked.
+Then in your Hermes session:
+```
+/reload-skills
 ```
 
-See the [Hermes skill authoring docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills) for the full schema.
+### Option B — Manual drop
+
+```bash
+git clone https://github.com/peaceofheaven777/telegram-rich-message-hermes.git
+mkdir -p ~/.hermes/skills/autonomous-ai-agents/telegram-rich-messages
+cp telegram-rich-message-hermes/skills/telegram-rich-messages/SKILL.md \
+   ~/.hermes/skills/autonomous-ai-agents/telegram-rich-messages/SKILL.md
+```
+
+Then `/reload-skills` in Hermes.
+
+### Option C — Paste to any agent
+
+Open [`SKILL.md`](./skills/telegram-rich-messages/SKILL.md), copy contents, tell your agent:
+
+> "Save this as a skill called `telegram-rich-messages`."
+
+Works with any Hermes-compatible agent.
 
 ---
 
-## 🤝 Contributing
+## 🛠 What the Skill Covers
 
-PRs welcome. Each new skill should:
-
-1. Live in `skills/<skill-name>/SKILL.md`
-2. Have frontmatter with `name`, `description`, `version`
-3. Document trigger conditions, steps, pitfalls
-4. Be tested end-to-end before submission
+| Section | Content |
+|---|---|
+| **Setup procedure** | 3-step config fix + restart (the only path that actually works) |
+| **12 pitfalls** | Every gotcha discovered during live debugging — wrong config path, streaming bypass, latch behavior, `send_message` tool bypass, etc. |
+| **Agent behavior** | When to use tables, checklists, `<details>`, headers — with patterns and examples |
+| **Diagnosis flowchart** | 6-step decision tree for "rich messages don't work" |
+| **Code path references** | Line numbers in `telegram.py` for deep debugging |
+| **Verification test** | Standard rich-render test snippet + expected results |
 
 ---
 
-## 📜 License
+## 📋 Setup TL;DR
 
-MIT — see individual skills for their license headers.
+If you don't want to read the whole skill, here's the minimum:
+
+```bash
+# 1. Enable rich messages in the CORRECT config path
+python3 -c "
+import yaml
+p = '$HOME/.hermes/config.yaml'
+with open(p) as f: c = yaml.safe_load(f)
+c.setdefault('gateway',{}).setdefault('platforms',{}).setdefault('telegram',{}).setdefault('extra',{})['rich_messages'] = True
+with open(p,'w') as f: yaml.safe_dump(c, f, sort_keys=False, default_flow_style=False)
+"
+
+# 2. Disable Telegram streaming (streaming sets expect_edits=True, blocking rich)
+python3 -c "
+import yaml
+p = '$HOME/.hermes/config.yaml'
+with open(p) as f: c = yaml.safe_load(f)
+c.setdefault('display',{}).setdefault('platforms',{}).setdefault('telegram',{})['streaming'] = False
+with open(p,'w') as f: yaml.safe_dump(c, f, sort_keys=False, default_flow_style=False)
+"
+
+# 3. Restart gateway (from EXTERNAL shell — agent cannot restart itself)
+systemctl --user restart hermes-gateway
+```
+
+Then send any reply with a table — should render natively. If not, load the full skill and follow the diagnosis flowchart.
+
+---
+
+## ⚠️ Critical Gotchas (Top 3)
+
+1. **Wrong config path** — `telegram.rich_messages` at root does NOTHING. Must be `gateway.platforms.telegram.extra.rich_messages`.
+2. **Streaming silently blocks rich** — `display.platforms.telegram.streaming: true` makes `expect_edits=True`, which makes `_should_attempt_rich()` return False.
+3. **`send_message` tool BYPASSES rich path** — Sends via legacy `bot.send_message(parse_mode=HTML)`. Verify with normal agent replies, not tool calls.
+
+The full skill has 9 more.
+
+---
+
+## 🎁 Bonus: Agent Behavior Guide
+
+After enabling, the skill instructs the agent to **default to rich formatting in every Telegram reply**:
+
+```markdown
+## 🚀 Heading
+
+One-line summary.
+
+| Key | Value |
+|---|---|
+| Status | ✅ |
+
+**Next steps:**
+- [x] Done
+- [ ] Pending
+
+<details>
+<summary>⚠️ Risks</summary>
+Optional deeper context.
+</details>
+```
+
+This is the pattern that makes Hermes replies look like a polished status report instead of a chat dump.
 
 ---
 
 ## 🦉 About Hoot
 
-Hoot is the agent identity used in the Hermes instance that generated these skills.
-- **Visual:** cyber owl, deep navy + teal, glowing cyan eyes, circuit-board feathers
-- **Built on:** [Hermes Agent](https://github.com/NousResearch/hermes-agent) by Nous Research
-- **Style:** terse, action-first, rich formatting always
+This skill was extracted from a live debugging session in a Hermes Agent instance named **Hoot** — a cyber owl persona (deep navy + teal, glowing cyan eyes, circuit-board feathers).
 
-If you save a skill from your own Hermes session, you're contributing to the same hivemind 🌐
+- **Built on:** [Hermes Agent](https://github.com/NousResearch/hermes-agent) by Nous Research
+- **Inspired by:** [Luke The Dev's tweet](https://x.com/iamlukethedev/status/2066197968701513998) on enabling Telegram Rich Messages
+- **Style philosophy:** terse, action-first, rich formatting always
+
+If you build on this or fix something, PRs welcome.
+
+---
+
+## 📜 License
+
+MIT — see [`SKILL.md`](./skills/telegram-rich-messages/SKILL.md) frontmatter.
+
+---
+
+## 🔗 Links
+
+| | |
+|---|---|
+| **Hermes Agent** | https://github.com/NousResearch/hermes-agent |
+| **Hermes Docs** | https://hermes-agent.nousresearch.com/docs |
+| **Telegram Bot API 10.1** | https://core.telegram.org/bots/api |
+| **Skill authoring guide** | https://hermes-agent.nousresearch.com/docs/user-guide/features/skills |
